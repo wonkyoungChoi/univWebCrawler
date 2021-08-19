@@ -12,6 +12,7 @@ import os
 import json
 import random
 import requests
+from bs4 import BeautifulSoup
 
 # Firebase database 인증을 위해 ... json 파일을 heroku에 업로드할 수 없기 때문
 cred_json = OrderedDict()
@@ -30,7 +31,7 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-SITE_URL = "http://www.anyang.ac.kr/bbs/board.do?menuId=23&bsIdx=61&bcIdx=0"
+SITE_URL = "https://www.mjc.ac.kr/bbs/data/list.do?pageIndex=1&SC_KEY=&SC_KEYWORD=&bbs_mst_idx=BM0000000026&menu_idx=66&data_idx=&memberAuth=Y"
 
 #
 cred = credentials.Certificate(JSON)
@@ -78,44 +79,53 @@ def sendMessage(title, keyword, url):
 
 
 def activateBot():
-    baseUrl = "http://www.anyang.ac.kr/bbs/boardView.do?bsIdx=61&menuId=23&bcIdx=20&bIdx="
-    datas = {"menuId": "23", "bsIdx": "61", "bcIdx": "0", "page": "1"}
+    baseUrl = "https://www.mjc.ac.kr/bbs/data/list.do?pageIndex=1&bbs_mst_idx=BM0000000026&menu_idx=66&memberAuth=Y&data_idx="
+    datas = {"bbs_mst_idx": "BM0000000026", "menu_idx": "66", "memberAuth": "Y", "pageIndex": "1"}
 
     now = datetime.datetime.now()
     print("Date: " + now.isoformat())
 
     try:
-        response = requests.post("http://www.anyang.ac.kr/bbs/ajax/boardList.do", data=datas)
+        response = requests.get("https://www.mjc.ac.kr/bbs/data/list.do", data=datas)
     except requests.exceptions.Timeout:
-        sendMessage("Timeout 발생", "모니터링 키워드", " ")
         exit()
     except requests.exceptions.TooManyRedirects:
-        sendMessage("TooManyRedirects 발생", "모니터링 키워드", " ")
         exit()
+        
+    startindex = 0
 
-    responseJson = response.json()
-    resultList = responseJson["resultList"]
+    soup = BeautifulSoup(response.content, "html.parser")
 
-    keywords = importSubscribedKeyword()
+    check = soup.select("tr > td:nth-of-type(1) > [alt]")
+    for string in check:
+        startindex += 1
+
+    strings = soup.find_all(attrs={'class': 'cell_type01'})
+
     subject = []
-    bidx = []
+    didx = []
+    keywords = importSubscribedKeyword()
 
-    # POST 요청 보내서 값 받아오기
-    for notice in resultList:
-        subject.append(notice["SUBJECT"])
-        bidx.append(notice["B_IDX"])
+    for string in strings:
+        title = string.text.strip()
+        subject.append(title)
+
+    href = soup.select("tr > td > a")
+
+    for a in href:
+        didx.append(a['href'].split(',\'')[1].replace("'", ""))
 
     newPostNumber = ""
-    for i in range(10):
-        newPostNumber = newPostNumber + ", " + bidx[i]
-        if not bidx[i] in previousPostNumber:  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
+    for i in range(startindex, startindex + 10):
+        newPostNumber = newPostNumber + ", " + didx[i]
+        if not didx[i] in previousPostNumber:  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
             print("title: [" + subject[i] + "]")
             print("contain keyword:", end=" ")
 
             for keyword in keywords:
                 if keyword in subject[i]:
                     print(keyword, end=", ")
-                    sendMessage(subject[i], keyword, baseUrl + bidx[i])
+                    sendMessage(subject[i], keyword, baseUrl + didx[i])
             print()
 
     return newPostNumber
