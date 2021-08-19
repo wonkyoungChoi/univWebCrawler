@@ -42,7 +42,6 @@ firebase_admin.initialize_app(cred, {
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
 
-
 def importSubscribedKeyword():
     keywords = []
     dir = db.reference().child("keywords")
@@ -60,9 +59,10 @@ def importSubscribedKeyword():
 
 
 def importPreviousPost():
-    dir = db.reference().child("previousPosts")
+    dir = db.reference().child("lastPostNum")
     snapshot = dir.get()
     for key, value in snapshot.items():
+        print("VALUE :", value)
         return value
 
 
@@ -75,6 +75,8 @@ def sendMessage(title, keyword, url):
     # 한글은 키워드로 설정할 수 없다. 한영변환.
     keyword = myInko.ko2en(keyword)
     # 구독한 사용자에게만 알림 전송
+    print("keyword : ", keyword)
+    print("data_message : ", data_message)
     push_service.notify_topic_subscribers(topic_name=keyword, data_message=data_message)
 
 
@@ -91,7 +93,7 @@ def activateBot():
         exit()
     except requests.exceptions.TooManyRedirects:
         exit()
-        
+
     startindex = 0
 
     soup = BeautifulSoup(response.content, "html.parser")
@@ -143,7 +145,7 @@ if 0 <= now <= 4 and 9 <= int(time) <= 18:  # 월~금, 9시~6시 사이에만 �
     previousPostNumber = importPreviousPost()
     newPostNumber = activateBot()
     if previousPostNumber != newPostNumber:
-        dir = db.reference().child("previousPosts")
-        dir.update({"previousPosts": newPostNumber})
+        dir = db.reference().child("lastPostNum")
+        dir.update({"lastPostNum": newPostNumber})
         print("\n" + "newPost: " + newPostNumber)
     print("-----------------------------------------------")
