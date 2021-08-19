@@ -141,12 +141,12 @@ def takeSomeRest():
 
 now = datetime.datetime.today().weekday()
 time = datetime.datetime.now().strftime('%H')
-if 0 <= now <= 4 and 9 <= int(time) <= 18:  # 월~금, 9시~6시 사이에만 작동
-    print("-----------------------------------------------")
-    previousPostNumber = importPreviousPost()
-    newPostNumber = activateBot()
-    if previousPostNumber != newPostNumber:
-        dir = db.reference().child("lastPostNum")
-        dir.update({"lastPostNum": newPostNumber})
-        print("\n" + "newPost: " + newPostNumber)
-    print("-----------------------------------------------")
+
+print("-----------------------------------------------")
+previousPostNumber = importPreviousPost()
+newPostNumber = activateBot()
+if previousPostNumber != newPostNumber:
+    dir = db.reference().child("lastPostNum")
+    dir.update({"lastPostNum": newPostNumber})
+    print("\n" + "newPost: " + newPostNumber)
+print("-----------------------------------------------")
