@@ -7,12 +7,13 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import inko
-myInko = inko.Inko()
 import os
 import json
 import random
 import requests
 from bs4 import BeautifulSoup
+
+myInko = inko.Inko()
 
 # Firebase database 인증을 위해 ... json 파일을 heroku에 업로드할 수 없기 때문
 cred_json = OrderedDict()
