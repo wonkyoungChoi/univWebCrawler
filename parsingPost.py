@@ -32,7 +32,7 @@ JSON = json.loads(JSON)
 
 # 링크, 키값 등
 APIKEY = os.environ["APIKEY"]
-SITE_URL = "https://www.mjc.ac.kr/bbs/data/list.do?pageIndex=1&SC_KEY=&SC_KEYWORD=&bbs_mst_idx=BM0000000026&menu_idx=66&data_idx=&memberAuth=Y"
+SITE_URL = os.environ["site_url"]
 
 #
 cred = credentials.Certificate(JSON)
@@ -82,14 +82,14 @@ def sendMessage(title, keyword, url):
 
 
 def activateBot():
-    baseUrl = "https://www.mjc.ac.kr/bbs/data/list.do?pageIndex=1&bbs_mst_idx=BM0000000026&menu_idx=66&memberAuth=Y&data_idx="
+    baseUrl = os.environ["base_url"]
     datas = {"bbs_mst_idx": "BM0000000026", "menu_idx": "66", "memberAuth": "Y", "pageIndex": "1"}
 
     now = datetime.datetime.now()
     print("Date: " + now.isoformat())
 
     try:
-        response = requests.get("https://www.mjc.ac.kr/bbs/data/list.do", data=datas)
+        response = requests.get(os.environ["request_url"], data=datas)
     except requests.exceptions.Timeout:
         exit()
     except requests.exceptions.TooManyRedirects:
