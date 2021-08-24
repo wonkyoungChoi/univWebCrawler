@@ -34,7 +34,7 @@ JSON = json.loads(JSON)
 APIKEY = os.environ["APIKEY"]
 SITE_URL = "https://www.mjc.ac.kr/bbs/data/list.do?pageIndex=1&SC_KEY=&SC_KEYWORD=&bbs_mst_idx=BM0000000026&menu_idx=66&data_idx=&memberAuth=Y"
 
-AP =os.envrion["PORT"]
+AP =os.environ["PORT"]
 
 print(AP)
 
