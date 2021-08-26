@@ -1,2 +1,2 @@
 worker: python parsingPost.py
-gunicorn app:app
+web: gunicorn app:app
