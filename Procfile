@@ -1,2 +1,2 @@
 worker: python parsingPost.py
-web: gunicorn parsingPost:app
+web: gunicorn uivWebCrawler/parsingPost:app
