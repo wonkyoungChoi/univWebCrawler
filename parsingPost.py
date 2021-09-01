@@ -43,6 +43,7 @@ firebase_admin.initialize_app(cred, {
 # 파이어베이스 콘솔에서 얻어 온 API키를 넣어 줌
 push_service = FCMNotification(api_key=APIKEY)
 
+
 def importSubscribedKeyword():
     keywords = []
     dir = db.reference().child("keywords")
@@ -61,6 +62,14 @@ def importSubscribedKeyword():
 
 def importPreviousPost():
     dir = db.reference().child("lastPostNum")
+    snapshot = dir.get()
+    for key, value in snapshot.items():
+        print("VALUE :", value)
+        return value
+
+
+def notiImportPreviousPost():
+    dir = db.reference().child("notiLastPostNum")
     snapshot = dir.get()
     for key, value in snapshot.items():
         print("VALUE :", value)
@@ -89,7 +98,7 @@ def activateBot():
     print("Date: " + now.isoformat())
 
     try:
-        response = requests.get(os.environ["request_url"], data=datas)
+        response = requests.get("https://www.mjc.ac.kr/bbs/data/list.do", data=datas)
     except requests.exceptions.Timeout:
         exit()
     except requests.exceptions.TooManyRedirects:
@@ -98,9 +107,9 @@ def activateBot():
     startindex = 0
 
     soup = BeautifulSoup(response.content, "html.parser")
-
     check = soup.select("tr > td:nth-of-type(1) > [alt]")
-    for string in check:
+
+    for _ in check:
         startindex += 1
 
     strings = soup.find_all(attrs={'class': 'cell_type01'})
@@ -119,6 +128,9 @@ def activateBot():
         didx.append(a['href'].split(',\'')[1].replace("'", ""))
 
     newPostNumber = ""
+
+    print("INDEX : ", startindex)
+
     for i in range(startindex, startindex + 10):
         newPostNumber = newPostNumber + ", " + didx[i]
         if not didx[i] in previousPostNumber:  # 최근 10개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
@@ -134,6 +146,57 @@ def activateBot():
     return newPostNumber
 
 
+def notiActivateBot():
+    baseUrl = os.environ["base_url"]
+    datas = {"bbs_mst_idx": "BM0000000026", "menu_idx": "66", "memberAuth": "Y", "pageIndex": "1"}
+
+    now = datetime.datetime.now()
+    print("Date: " + now.isoformat())
+
+    try:
+        response = requests.get("https://www.mjc.ac.kr/bbs/data/list.do", data=datas)
+    except requests.exceptions.Timeout:
+        exit()
+    except requests.exceptions.TooManyRedirects:
+        exit()
+
+    notiIndex = 0
+
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    noti = soup.find_all(attrs={'class': 'cell_notice'})
+    notisubject = []
+    notididx = []
+    notikeywords = importSubscribedKeyword()
+
+    for string in noti:
+        title = string.select_one("tr > td:nth-child(2) > a").text
+        notisubject.append(title)
+        notiIndex += 1
+
+    href = soup.select("tr > td > a")
+
+    for a in href:
+        notididx.append(a['href'].split(',\'')[1].replace("'", ""))
+
+    NotinewPostNumber = ""
+
+    for i in range(3):
+        print("NOTIDIDX : ", notididx[i])
+        NotinewPostNumber = NotinewPostNumber + ", " + notididx[i]
+        if not notididx[i] in notiPreviousPostNumber:  # 최근 3개 게시물중 이 번호가 아닌게 있으면 = 새로운 게시물이면
+            print("title: [" + notisubject[i] + "]")
+            print("contain keyword:", end=" ")
+
+            for keyword in notikeywords:
+                if keyword in notisubject[i]:
+                    print(keyword, end=", ")
+                    sendMessage(notisubject[i], keyword, baseUrl + notididx[i])
+            print()
+
+    return NotinewPostNumber
+
+
 def takeSomeRest():
     rand_value = random.randint(1, 10)
     sleep(rand_value)
@@ -141,13 +204,20 @@ def takeSomeRest():
 
 now = datetime.datetime.today().weekday()
 time = datetime.datetime.now().strftime('%H')
-
+print(now)
+print(time)
 if 0 <= now <= 4 and 9 <= int(time) <= 18:  # 월~금, 9시~6시 사이에만 작동
     print("-----------------------------------------------")
     previousPostNumber = importPreviousPost()
+    notiPreviousPostNumber = notiImportPreviousPost()
     newPostNumber = activateBot()
+    notiNewPostNumber = notiActivateBot()
     if previousPostNumber != newPostNumber:
         dir = db.reference().child("lastPostNum")
         dir.update({"lastPostNum": newPostNumber})
         print("\n" + "newPost: " + newPostNumber)
+    if notiPreviousPostNumber != notiNewPostNumber:
+        dir = db.reference().child("notiLastPostNum")
+        dir.update({"notiLastPostNum": notiNewPostNumber})
+        print("\n" + "notiNewPost: " + notiNewPostNumber)
     print("-----------------------------------------------")
